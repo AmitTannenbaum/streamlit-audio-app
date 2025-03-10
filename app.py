@@ -30,18 +30,14 @@ if uploaded_file:
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.MP3,
             sample_rate_hertz=16000,
-            language_code="en-US",
-            enable_word_time_offsets=True  # זמני תחילת מילים
+            language_code="en-US"
         )
 
         response = client.recognize(config=config, audio=audio)
 
         transcribed_text = []
         for result in response.results:
-            for word_info in result.alternatives[0].words:
-                word = word_info.word
-                start_time = word_info.start_time.total_seconds()
-                transcribed_text.append(f"{start_time:.2f} sec: {word}")
+            transcribed_text.append(result.alternatives[0].transcript)
 
         return "\n".join(transcribed_text)
 
@@ -49,7 +45,7 @@ if uploaded_file:
     with st.spinner("⏳ מתמלל את ההקלטה..."):
         transcript = transcribe_audio(input_audio_path)
 
-    st.subheader("📜 תמלול עם זמנים:")
+    st.subheader("📜 תמלול:")
     st.text_area("📖 תמלול:", transcript, height=300)
 
     # בחירת טווח לחיתוך
@@ -76,4 +72,3 @@ if uploaded_file:
                 st.download_button(label="📥 הורד את האודיו החתוך", data=f, file_name="trimmed_audio.mp3", mime="audio/mp3")
         else:
             st.error("❌ זמן הסיום חייב להיות גדול מזמן ההתחלה!")
-
