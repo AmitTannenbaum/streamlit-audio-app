@@ -3,9 +3,17 @@ from google.cloud import speech
 from pydub import AudioSegment
 import os
 import tempfile
+import json
 
-# כותרת ראשית
+# הגדרת הרשאות Google Cloud
 st.title("🎙️ תמלול וחיתוך אודיו")
+
+uploaded_auth_file = st.file_uploader("📂 העלה קובץ JSON של הרשאות Google", type=["json"])
+if uploaded_auth_file:
+    with open("service_account.json", "wb") as f:
+        f.write(uploaded_auth_file.read())
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service_account.json"
+    st.success("✅ הרשאות נטענו בהצלחה!")
 
 # העלאת קובץ אודיו
 uploaded_file = st.file_uploader("📂 העלה קובץ MP3", type=["mp3"])
@@ -30,14 +38,18 @@ if uploaded_file:
         config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.MP3,
             sample_rate_hertz=16000,
-            language_code="en-US"
+            language_code="en-US",
+            enable_word_time_offsets=True  # זמני תחילת מילים
         )
 
         response = client.recognize(config=config, audio=audio)
 
         transcribed_text = []
         for result in response.results:
-            transcribed_text.append(result.alternatives[0].transcript)
+            for word_info in result.alternatives[0].words:
+                word = word_info.word
+                start_time = word_info.start_time.total_seconds()
+                transcribed_text.append(f"{start_time:.2f} sec: {word}")
 
         return "\n".join(transcribed_text)
 
@@ -45,7 +57,7 @@ if uploaded_file:
     with st.spinner("⏳ מתמלל את ההקלטה..."):
         transcript = transcribe_audio(input_audio_path)
 
-    st.subheader("📜 תמלול:")
+    st.subheader("📜 תמלול עם זמנים:")
     st.text_area("📖 תמלול:", transcript, height=300)
 
     # בחירת טווח לחיתוך
